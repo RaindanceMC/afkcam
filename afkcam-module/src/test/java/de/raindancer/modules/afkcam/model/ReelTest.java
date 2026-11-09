@@ -6,66 +6,78 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-@DisplayName("the reel: where the camera is at any moment")
+@DisplayName("the reel: still angles, cut from one to the next")
 class ReelTest {
 
     private static final Point HEAD = new Point(100, 64, -20);
+    private final Reel reel = Reel.stills(6, 2, 20);
 
     @Test
-    @DisplayName("the first shot starts radius away and height above the head")
-    void firstShot() {
-        Reel reel = Reel.standard(6, 2, 80, 20, 4);
+    @DisplayName("a cut lasts its seconds: the same cut all through, the next one after")
+    void cuts() {
+        assertThat(reel.cut(0)).isZero();
+        assertThat(reel.cut(19.9)).isZero();
+        assertThat(reel.cut(20)).isEqualTo(1);
+        assertThat(reel.cut(65)).isEqualTo(3);
+    }
 
-        Point at = reel.position(HEAD, 0);
+    @Test
+    @DisplayName("within a cut the camera stands still — nothing to shake")
+    void stillWithinCut() {
+        Point first = reel.position(HEAD, 2, 0.3);
+        assertThat(reel.position(HEAD, 2, 0.3)).isEqualTo(first);
+    }
 
+    @Test
+    @DisplayName("the first cut shows the player from the front, a little to the side, radius out and height up")
+    void firstFromFront() {
+        double facing = 0.7;
+        Point at = reel.position(HEAD, 0, facing);
+
+        double side = Math.atan2(at.z() - HEAD.z(), at.x() - HEAD.x());
+        assertThat(Math.abs(Math.IEEEremainder(side - facing, 2 * Math.PI))).isBetween(0.2, 1.0);
         assertThat(Math.hypot(at.x() - HEAD.x(), at.z() - HEAD.z())).isCloseTo(6, within(1e-9));
         assertThat(at.y() - HEAD.y()).isCloseTo(2, within(1e-9));
     }
 
     @Test
-    @DisplayName("an orbit goes a quarter way round in a quarter of a turn")
-    void orbits() {
-        Shot orbit = new Shot(6, 2, 1, 0);
-
-        Point start = orbit.position(HEAD, 0, 80);
-        Point quarter = orbit.position(HEAD, 20, 80);
-
-        double a = Math.atan2(start.z() - HEAD.z(), start.x() - HEAD.x());
-        double b = Math.atan2(quarter.z() - HEAD.z(), quarter.x() - HEAD.x());
-        assertThat(Math.abs(Math.IEEEremainder(b - a, 2 * Math.PI))).isCloseTo(Math.PI / 2, within(1e-9));
-    }
-
-    @Test
-    @DisplayName("from shot to shot the camera glides — it never jumps, over several whole cycles")
-    void neverJumps() {
-        Reel reel = Reel.standard(6, 2, 80, 20, 4);
-        double step = 0.05;
-        Point last = reel.position(HEAD, 0);
-        for (double t = step; t < reel.cycleSeconds() * 3; t += step) {
-            Point now = reel.position(HEAD, t);
-            assertThat(now.minus(last).length()).as("at %.2f s", t).isLessThan(0.6);
-            last = now;
+    @DisplayName("each cut comes from a clearly different side than the one before")
+    void differentSides() {
+        for (int cut = 1; cut < 40; cut++) {
+            Point before = reel.position(HEAD, cut - 1, 0);
+            Point now = reel.position(HEAD, cut, 0);
+            double a = Math.atan2(before.z() - HEAD.z(), before.x() - HEAD.x());
+            double b = Math.atan2(now.z() - HEAD.z(), now.x() - HEAD.x());
+            boolean fromAbove = Math.hypot(now.x() - HEAD.x(), now.z() - HEAD.z()) < 3
+                    || Math.hypot(before.x() - HEAD.x(), before.z() - HEAD.z()) < 3;
+            if (!fromAbove) {
+                assertThat(Math.abs(Math.IEEEremainder(b - a, 2 * Math.PI))).as("cut %d", cut)
+                        .isGreaterThan(Math.PI / 4);
+            }
         }
     }
 
     @Test
-    @DisplayName("the reel changes shot: halfway through the second shot the camera is somewhere else than an orbit")
-    void changesShot() {
-        Reel reel = Reel.standard(6, 2, 80, 20, 4);
-
-        Point second = reel.position(HEAD, 30);
-
-        assertThat(second.y() - HEAD.y()).isNotCloseTo(2, within(0.5));
-        assertThat(reel.cycleSeconds()).isEqualTo(20.0 * reel.shots().size());
-        assertThat(reel.shots()).hasSizeGreaterThanOrEqualTo(3);
+    @DisplayName("the kinds take turns: close, wide from high up, low, from above")
+    void kinds() {
+        assertThat(reel.shots()).hasSize(4);
+        assertThat(reel.position(HEAD, 1, 0).y() - HEAD.y()).isGreaterThan(5);
+        assertThat(reel.position(HEAD, 2, 0).y()).isLessThan(HEAD.y());
     }
 
     @Test
-    @DisplayName("no shot ever puts the camera into the head")
+    @DisplayName("every angle stays close: never more than twice the distance away")
+    void staysClose() {
+        for (int cut = 0; cut < 8; cut++) {
+            assertThat(reel.position(HEAD, cut, 0).minus(HEAD).length()).as("cut %d", cut).isLessThan(12.5);
+        }
+    }
+
+    @Test
+    @DisplayName("no cut ever puts the camera into the head")
     void keepsDistance() {
-        Reel reel = Reel.standard(6, 2, 80, 20, 4);
-        for (double t = 0; t < reel.cycleSeconds(); t += 0.25) {
-            assertThat(reel.position(HEAD, t).minus(HEAD).length()).as("at %.2f s", t).isGreaterThan(1.5);
+        for (int cut = 0; cut < 40; cut++) {
+            assertThat(reel.position(HEAD, cut, 1.1).minus(HEAD).length()).as("cut %d", cut).isGreaterThan(1.5);
         }
     }
 
@@ -80,5 +92,12 @@ class ReelTest {
         assertThat(east.pitch()).isCloseTo(0f, within(1e-4f));
         assertThat(above.pitch()).isCloseTo(45f, within(1e-4f));
         assertThat(Math.abs(south.yaw())).isCloseTo(180f, within(1e-4f));
+    }
+
+    @Test
+    @DisplayName("the side a player faces, in the reel's angles: facing south (yaw 0) is +z")
+    void facing() {
+        assertThat(Reel.facing(0)).isCloseTo(Math.PI / 2, within(1e-9));
+        assertThat(Math.abs(Math.IEEEremainder(Reel.facing(90) - Math.PI, 2 * Math.PI))).isCloseTo(0, within(1e-9));
     }
 }

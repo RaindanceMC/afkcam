@@ -25,7 +25,8 @@
         <plugin.name>RainsAfkCam</plugin.name>
         <!-- 0.1.0: a slow cinematic camera around whoever is away, until they press a key. -->
         <!-- 0.2.0: arm and HUD hidden during the camera (only the client is told it spectates). -->
-        <plugin.version>0.2.0</plugin.version>
+        <!-- 0.3.0: still angles held 45 s with clean cuts instead of a moving orbit — calm, no shaking. -->
+        <plugin.version>0.3.0</plugin.version>
     </properties>
 
     <dependencies>

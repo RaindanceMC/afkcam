@@ -1,21 +1,21 @@
 id: afkcam
 title: AFK camera
-summary: While you are away, a slow cinematic camera circles you — until you press a key.
+summary: While you are away, calm cinematic camera angles show you — until you press a key.
 intro: |
-  Step away from the keyboard and your screen turns into a little film about yourself: a slow camera gliding round your character, at sunset, with music. Press any key and you are back.
+  Step away from the keyboard and your screen turns into a little film about yourself: calm still shots of your character, at sunset, with music. Press any key and you are back.
 icon: SPYGLASS
 category: Getting around
 order: 80
 module: afkcam
 aliases: [afkcam, afkcamera, afk-cam, camera, cinematic]
-keywords: [afk, away, camera, cinematic, film, orbit, idle, screen, preview]
+keywords: [afk, away, camera, cinematic, film, shots, idle, screen, preview]
 commands: [afkcam]
 sections:
   - question: What is the AFK camera?
     title: What it is
     when: afkcam:enabled
     text: |
-      Once you count as away, after {setting:afkcam:start-after-seconds|seconds} more your view leaves your head and circles you slowly: close up, wide from high above, low looking up, and from straight overhead, gliding from one shot into the next.
+      Once you count as away, after {setting:afkcam:start-after-seconds|seconds} more your view leaves your head and shows you from still angles, each held a while before a quiet cut to another side: close up, wide from high above, low looking up, and from straight overhead.
       {if:afkcam:golden-hour}Your sky turns to sunset while it runs.{/if} Only <i>your</i> screen changes — everybody else sees you standing where you are.
   - question: How do I get out of it?
     title: Coming back
@@ -45,5 +45,5 @@ sections:
       {run:/settings} has a page "AFK camera". Defaults today:
       On — {setting:afkcam:enabled|onoff}; for those who never chose — {setting:afkcam:on-by-default|onoff}.
       Starts after — {setting:afkcam:start-after-seconds|seconds} away; not within {setting:afkcam:calm-seconds|seconds} of being hurt.
-      Distance {setting:afkcam:radius} blocks, height {setting:afkcam:height}, one turn {setting:afkcam:seconds-per-turn|seconds}, one shot {setting:afkcam:shot-seconds|seconds}.
-      Sunset sky — {setting:afkcam:golden-hour|onoff}; floating sparks — {setting:afkcam:ambience|onoff}; music — {setting:afkcam:music}.
+      Distance {setting:afkcam:radius} blocks, height {setting:afkcam:height}, each angle held {setting:afkcam:shot-seconds|seconds}.
+      Sunset sky — {setting:afkcam:golden-hour|onoff}; floating sparks — {setting:afkcam:ambience|onoff}; music — {setting:afkcam:music} (custom: the server's own tracks).

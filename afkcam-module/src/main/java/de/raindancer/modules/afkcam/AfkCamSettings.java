@@ -16,7 +16,7 @@ import org.bukkit.Material;
 public record AfkCamSettings(
 
         @In("afkcam") @Title("AFK camera on")
-        @Describe("Whether players who are away see themselves from a slow camera circling them. Off, nobody's "
+        @Describe("Whether players who are away see themselves from still camera angles, cut slowly from one to the next. Off, nobody's "
                 + "camera moves and /afkcam preview is refused.")
         @Key("enabled")
         boolean enabled,
@@ -40,24 +40,19 @@ public record AfkCamSettings(
         int calmSeconds,
 
         @In("afkcam") @Title("Distance (blocks)") @Range(min = 2, max = 16)
-        @Describe("How far from the player the close shot circles. The other shots are worked out from it. "
+        @Describe("How far from the player the close angle stands. The other angles are worked out from it. "
                 + "The camera always stays on the player's side of a wall.")
         @Key("radius")
         int radius,
 
         @In("afkcam") @Title("Height (blocks)") @Range(min = -2, max = 10)
-        @Describe("How far above the player's eyes the close shot circles.")
+        @Describe("How far above the player's eyes the close angle stands.")
         @Key("height")
         int height,
 
-        @In("afkcam") @Title("One turn takes (seconds)") @Range(min = 20, max = 600)
-        @Describe("How long the close shot takes to go once round the player. Slower looks calmer.")
-        @Key("seconds-per-turn")
-        int secondsPerTurn,
-
-        @In("afkcam") @Title("One shot lasts (seconds)") @Range(min = 5, max = 300)
-        @Describe("How long each shot lasts before the camera glides into the next one: close, wide from high "
-                + "up, low looking up, and from straight above.")
+        @In("afkcam") @Title("One angle lasts (seconds)") @Range(min = 10, max = 600)
+        @Describe("How long the camera holds still on one angle before it cuts to the next, from another side: "
+                + "close, wide from high up, low looking up, and from straight above.")
         @Key("shot-seconds")
         int shotSeconds,
 
@@ -74,8 +69,11 @@ public record AfkCamSettings(
         boolean ambience,
 
         @In("afkcam") @Title("Music")
-        @Describe("The sound played to the player when their camera starts, stopped when it ends — a key like "
-                + "minecraft:music.menu. Empty plays nothing.")
+        @Describe("What plays while the camera runs. custom: the server's own tracks — every .ogg (Vorbis) in "
+                + "plugins/RainsAfkCam/music, shuffled, one after another; they reach players through the server's "
+                + "resource pack, and whoever has no pack (or while the folder is empty) hears the game's menu "
+                + "music instead. Or a sound key like minecraft:music.menu, played once. Empty plays nothing. "
+                + "New tracks are picked up at the next restart.")
         @Key("music")
         String music,
 
@@ -87,6 +85,6 @@ public record AfkCamSettings(
         @Key("hide-hud")
         boolean hideHud) {
 
-    public static final AfkCamSettings DEFAULTS = new AfkCamSettings(true, true, 5, 20, 6, 2, 90, 20, true, true,
-            "minecraft:music.menu", true);
+    public static final AfkCamSettings DEFAULTS = new AfkCamSettings(true, true, 5, 20, 4, 1, 45, true, true,
+            "custom", true);
 }

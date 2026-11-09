@@ -42,7 +42,13 @@ public final class AfkCamCommand implements BasicCommand {
                 wanted.set(player, false);
                 live.messages().send(player, "afkcam.switched-off");
             }
-            case "status" -> live.messages().send(player, wanted.isOn(player) ? "afkcam.status-on" : "afkcam.status-off");
+            case "status" -> {
+                live.messages().send(player, wanted.isOn(player) ? "afkcam.status-on" : "afkcam.status-off");
+                String playing = live.cams().playing(player.getUniqueId());
+                if (!playing.isEmpty()) {
+                    live.messages().send(player, "afkcam.status-music", "track", playing);
+                }
+            }
             case "preview" -> preview(live, player);
             default -> live.messages().send(player, "afkcam.usage");
         }

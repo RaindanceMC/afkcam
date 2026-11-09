@@ -2,8 +2,7 @@ package de.raindancer.modules.afkcam.model;
 
 /**
  * How far a shot is raised above where the reel wants it, when leaves or a wall are in the way: a camera squeezed
- * against the player's face is no shot, while from a little higher it usually sees over the trees. Eased, so the
- * camera cranes up and down rather than jumping. One per running camera.
+ * against the player's face is no shot, while from a little higher it usually sees over the trees.
  */
 public final class Lift {
 
@@ -11,16 +10,10 @@ public final class Lift {
     static final double CLEAR_ENOUGH = 0.75;
 
     private final double step;
-    private final double perSecond;
-    private double current;
 
-    /**
-     * @param step      blocks between two heights tried
-     * @param perSecond how fast the camera cranes, in blocks per second
-     */
-    public Lift(double step, double perSecond) {
+    /** @param step blocks between two heights tried */
+    public Lift(double step) {
         this.step = step;
-        this.perSecond = perSecond;
     }
 
     /** Blocks above the shot for height number {@code index}. */
@@ -43,12 +36,5 @@ public final class Lift {
             }
         }
         return best;
-    }
-
-    /** Moves towards {@code target} blocks of lift. @return the lift now */
-    public double ease(double target, double dt) {
-        double most = perSecond * dt;
-        current += Math.max(-most, Math.min(most, target - current));
-        return current;
     }
 }

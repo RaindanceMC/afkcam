@@ -16,6 +16,9 @@ import de.raindancer.modules.afkcam.model.Lift;
 import de.raindancer.modules.afkcam.model.Point;
 import de.raindancer.modules.afkcam.model.Pose;
 import de.raindancer.modules.afkcam.model.Reel;
+import de.raindancer.modules.afkcam.music.MusicChoice;
+import de.raindancer.modules.afkcam.music.Playlist;
+import de.raindancer.modules.afkcam.music.Track;
 import de.raindancer.modules.afkcam.rules.CamRule;
 import de.raindancer.modules.afkcam.rules.CamRule.Moment;
 import de.raindancer.modules.afkcam.rules.CamRule.Verdict;
@@ -45,16 +48,18 @@ import org.bukkit.util.Vector;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
  * The cameras: one ticking task per online player that notices them going away, and for whoever has a camera, an
- * invisible display only they can see, moved along the {@link Reel} every tick and looked through with
- * {@link PlayerCamera} — plus a mannequin in their skin and gear where they stand, also only for them: the game never
+ * invisible display only they can see, put on the {@link Reel}'s still angles — held still, then cut — and looked
+ * through with {@link PlayerCamera} — plus a mannequin in their skin and gear where they stand, also only for them: the game never
  * draws a player's own body to themselves unless they are the camera, so without it the camera circles nobody.
  *
  * <p>Everything a camera changes is only on the player's own screen — the camera, their sky, a sound, some
@@ -65,10 +70,12 @@ public final class AfkCamService {
 
     private static final String OWNER = "afkcam";
     private static final long GOLDEN_HOUR = 12_600;
-    private static final double SECONDS_PER_TICK = 0.05;
-    private static final double BLEND_SECONDS = 4;
-    /** Heights tried above a blocked shot: 0, 2, 4, 6 and 8 blocks. */
-    private static final int LIFTS = 5;
+    /** A player carried further than this (water, a minecart) gets a fresh cut instead of drifting out of shot. */
+    private static final double RECUT_AFTER_BLOCKS = 2;
+    /** Heights tried above a blocked shot: 0 to 3 blocks; beyond that it rather comes closer. */
+    private static final int LIFTS = 4;
+    /** Quiet between two tracks, the way the game leaves a pause between its own. */
+    private static final double TRACK_GAP_SECONDS = 4;
 
     public enum Reason { BACK, KEY, HURT, MOVED, QUIT, OFF }
 
@@ -78,6 +85,8 @@ public final class AfkCamService {
     private final ActionBars bars;
     private final Messages messages;
     private final LongSupplier clock;
+    private final Supplier<List<Track>> tracks;
+    private final Predicate<UUID> wearsPack;
     private final AwayWatch watch = new AwayWatch();
     private final CamRule rule = new CamRule();
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
@@ -87,36 +96,42 @@ public final class AfkCamService {
         final ItemDisplay display;
         final Mannequin standIn;
         final Reel reel;
-        final Framing framing = new Framing(0.3, 1.5);
-        final Lift lift = new Lift(2, 1.5);
-        double liftTarget;
+        final double facing;
         final long startedAt;
         final boolean preview;
         final boolean skySet;
-        final String music;
+        final Playlist playlist;
+        String playing = "";
+        long nextTrackAt;
         int ticks;
         boolean hudHidden;
+        int cut = -1;
+        Point framedHead;
 
-        Session(ItemDisplay display, Mannequin standIn, Reel reel, long startedAt, boolean preview, boolean skySet,
-                String music) {
+        Session(ItemDisplay display, Mannequin standIn, Reel reel, double facing, long startedAt, boolean preview,
+                boolean skySet, Playlist playlist) {
             this.display = display;
             this.standIn = standIn;
             this.reel = reel;
+            this.facing = facing;
             this.startedAt = startedAt;
             this.preview = preview;
             this.skySet = skySet;
-            this.music = music;
+            this.playlist = playlist;
         }
     }
 
     public AfkCamService(Plugin plugin, PlayerCamera camera, Supplier<AfkCamSettings> settings, ActionBars bars,
-                         Messages messages, LongSupplier clock) {
+                         Messages messages, LongSupplier clock, Supplier<List<Track>> tracks,
+                         Predicate<UUID> wearsPack) {
         this.plugin = plugin;
         this.camera = camera;
         this.settings = settings;
         this.bars = bars;
         this.messages = messages;
         this.clock = clock;
+        this.tracks = tracks;
+        this.wearsPack = wearsPack;
     }
 
     public PlayerSwitch wanted() {
@@ -129,6 +144,12 @@ public final class AfkCamService {
 
     public boolean running(UUID who) {
         return sessions.containsKey(who);
+    }
+
+    /** The sound a running camera plays to {@code who}, empty when none. */
+    public String playing(UUID who) {
+        Session session = sessions.get(who);
+        return session == null ? "" : session.playing;
     }
 
     public boolean hidingHud(UUID who) {
@@ -208,7 +229,7 @@ public final class AfkCamService {
             stop(player, Reason.MOVED);
             return;
         }
-        frame(player, session, false);
+        frame(player, session);
         follow(player, session);
         if (session.ticks == 3 || session.ticks % 40 == 0) {
             // Again now and then: a client that lost track of the display (a lag spike, a dimension's loading
@@ -220,6 +241,9 @@ public final class AfkCamService {
         }
         if (session.ticks % 20 == 0) {
             showBar(player, session);
+            if (session.playlist != null && clock.getAsLong() >= session.nextTrackAt) {
+                nextTrack(player, session);
+            }
         }
         if (session.ticks % 8 == 0 && settings.get().ambience()) {
             sparkle(player);
@@ -228,12 +252,13 @@ public final class AfkCamService {
 
     private void start(Player player, boolean preview) {
         AfkCamSettings s = settings.get();
-        Reel reel = Reel.standard(s.radius(), s.height(), s.secondsPerTurn(), s.shotSeconds(), BLEND_SECONDS);
+        Reel reel = Reel.stills(s.radius(), s.height(), s.shotSeconds());
         Location head = player.getEyeLocation();
         ItemDisplay display = head.getWorld().spawn(head, ItemDisplay.class, d -> {
             d.setPersistent(false);
             d.setVisibleByDefault(false);
-            d.setTeleportDuration(2);
+            // No interpolation: a new angle is a clean cut, never a swoop.
+            d.setTeleportDuration(0);
             d.setSilent(true);
         });
         player.showEntity(plugin, display);
@@ -257,15 +282,21 @@ public final class AfkCamService {
             player.setPlayerTime(GOLDEN_HOUR, false);
             skySet = true;
         }
-        String music = s.music() == null ? "" : s.music().trim();
-        Session session = new Session(display, standIn, reel, clock.getAsLong(), preview, skySet, music);
+        List<Track> own = tracks.get();
+        MusicChoice music = MusicChoice.of(s.music(), !own.isEmpty(), wearsPack.test(player.getUniqueId()));
+        Session session = new Session(display, standIn, reel, Reel.facing(player.getLocation().getYaw()),
+                clock.getAsLong(), preview, skySet, music.playlist() ? new Playlist(own, new Random()) : null);
         sessions.put(player.getUniqueId(), session);
-        frame(player, session, true);
+        frame(player, session);
         player.showTitle(Title.title(messages.get("afkcam.title"),
                 messages.get(preview ? "afkcam.subtitle-preview" : "afkcam.subtitle"),
                 Title.Times.times(Duration.ofMillis(1500), Duration.ofSeconds(4), Duration.ofMillis(1500))));
-        if (!music.isEmpty() && Key.parseable(music)) {
-            player.playSound(Sound.sound(Key.key(music), Sound.Source.MUSIC, 0.6f, 1f), Sound.Emitter.self());
+        // The game's own background music would play over ours.
+        player.stopSound(SoundStop.source(Sound.Source.MUSIC));
+        if (session.playlist != null) {
+            nextTrack(player, session);
+        } else if (!music.key().isEmpty()) {
+            play(player, session, music.key());
         }
         showBar(player, session);
     }
@@ -285,8 +316,8 @@ public final class AfkCamService {
             if (session.skySet) {
                 player.resetPlayerTime();
             }
-            if (!session.music.isEmpty() && Key.parseable(session.music)) {
-                player.stopSound(SoundStop.namedOnSource(Key.key(session.music), Sound.Source.MUSIC));
+            if (!session.playing.isEmpty()) {
+                player.stopSound(SoundStop.namedOnSource(Key.key(session.playing), Sound.Source.MUSIC));
             }
             if (reason == Reason.KEY && Away.isAway(player.getUniqueId())) {
                 watch.hold(player.getUniqueId());
@@ -310,22 +341,27 @@ public final class AfkCamService {
         tasks.clear();
     }
 
-    private void frame(Player player, Session session, boolean first) {
+    /** Only at a cut, or when the player was carried off: in between the camera does not move at all. */
+    private void frame(Player player, Session session) {
         Location eye = player.getEyeLocation();
         Point head = new Point(eye.getX(), eye.getY(), eye.getZ());
-        double seconds = (clock.getAsLong() - session.startedAt) / 1000.0;
-        Point shot = session.reel.position(head, seconds);
-        if (first || session.ticks % 5 == 0) {
-            double[] shares = new double[LIFTS];
-            for (int i = 0; i < LIFTS; i++) {
-                Point raised = shot.plus(new Point(0, session.lift.blocks(i), 0));
-                double length = raised.minus(head).length();
-                shares[i] = Math.min(1, clear(eye, head, raised) / length);
-            }
-            session.liftTarget = session.lift.blocks(Lift.choose(shares));
+        int cut = session.reel.cut((clock.getAsLong() - session.startedAt) / 1000.0);
+        if (cut == session.cut && session.framedHead != null
+                && head.minus(session.framedHead).length() < RECUT_AFTER_BLOCKS) {
+            return;
         }
-        Point wanted = shot.plus(new Point(0, session.lift.ease(session.liftTarget, first ? 1000 : SECONDS_PER_TICK), 0));
-        Point at = session.framing.frame(head, wanted, clear(eye, head, wanted), SECONDS_PER_TICK);
+        boolean first = session.cut < 0;
+        session.cut = cut;
+        session.framedHead = head;
+        Point shot = session.reel.position(head, cut, session.facing);
+        Lift lift = new Lift(1);
+        double[] shares = new double[LIFTS];
+        for (int i = 0; i < LIFTS; i++) {
+            Point raised = shot.plus(new Point(0, lift.blocks(i), 0));
+            shares[i] = Math.min(1, clear(eye, head, raised) / raised.minus(head).length());
+        }
+        Point wanted = shot.plus(new Point(0, lift.blocks(Lift.choose(shares)), 0));
+        Point at = new Framing(0.3, 0).frame(head, wanted, clear(eye, head, wanted), 0);
         Pose pose = Pose.looking(at, head);
         Location to = new Location(eye.getWorld(), at.x(), at.y(), at.z(), pose.yaw(), pose.pitch());
         if (first) {
@@ -395,6 +431,20 @@ public final class AfkCamService {
         copy.setArmorContents(worn.getArmorContents());
         copy.setItemInMainHand(worn.getItemInMainHand());
         copy.setItemInOffHand(worn.getItemInOffHand());
+    }
+
+    private void nextTrack(Player player, Session session) {
+        if (!session.playing.isEmpty()) {
+            player.stopSound(SoundStop.namedOnSource(Key.key(session.playing), Sound.Source.MUSIC));
+        }
+        Track track = session.playlist.next();
+        play(player, session, track.sound());
+        session.nextTrackAt = clock.getAsLong() + (long) ((track.seconds() + TRACK_GAP_SECONDS) * 1000);
+    }
+
+    private static void play(Player player, Session session, String key) {
+        session.playing = key;
+        player.playSound(Sound.sound(Key.key(key), Sound.Source.MUSIC, 0.6f, 1f), Sound.Emitter.self());
     }
 
     private void showBar(Player player, Session session) {
