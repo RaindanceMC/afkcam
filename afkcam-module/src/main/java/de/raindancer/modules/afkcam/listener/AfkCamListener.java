@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -61,6 +62,18 @@ public final class AfkCamListener implements Listener {
         var input = event.getInput();
         if (input.isForward() || input.isBackward() || input.isLeft() || input.isRight() || input.isJump()
                 || input.isSneak() || input.isSprint()) {
+            back(event.getPlayer());
+        }
+    }
+
+    /**
+     * With the HUD hidden the client believes it spectates, and so does the anti-cheat watching its packets: a
+     * real step would be a spectator's free flight. A standing client sends none, so any step ends it.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        if (event.hasChangedPosition() && cams.hidingHud(event.getPlayer().getUniqueId())
+                && event.getFrom().distanceSquared(event.getTo()) > 1.0E-4) {
             back(event.getPlayer());
         }
     }

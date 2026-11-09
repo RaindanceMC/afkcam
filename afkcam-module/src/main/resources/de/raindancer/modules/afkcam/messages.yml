@@ -1,8 +1,8 @@
 # This module's wording. Every line can be rewritten in plugins/RainsCore/messages.yml.
 afkcam:
   title: "<gradient:#F6B83D:#F2843A>✦ Away ✦</gradient>"
-  subtitle: "<#6EC1EA>Any key brings you back <dark_gray>· <gray>F1 for the full picture"
-  subtitle-preview: "<#6EC1EA>Any key ends it <dark_gray>· <gray>F1 for the full picture"
+  subtitle: "<#6EC1EA>Any key brings you back"
+  subtitle-preview: "<#6EC1EA>Any key ends it"
   bar: "<#6EC1EA>Away for <white><minutes></white> min <dark_gray>· <gray>any key brings you back"
   bar-preview: "<#6EC1EA>Preview <dark_gray>· <gray>any key ends it"
   back: "<#6EC1EA>Welcome back."

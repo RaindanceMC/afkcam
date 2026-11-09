@@ -6,6 +6,7 @@ import de.raindancer.core.social.presence.Away;
 import de.raindancer.core.ui.actionbar.ActionBarPriority;
 import de.raindancer.core.ui.actionbar.ActionBars;
 import de.raindancer.core.ui.camera.PlayerCamera;
+import de.raindancer.core.ui.menu.ClickHints;
 import de.raindancer.core.ui.messages.Messages;
 import de.raindancer.core.ui.profile.PlayerSwitch;
 import de.raindancer.modules.afkcam.AfkCamSettings;
@@ -18,12 +19,15 @@ import de.raindancer.modules.afkcam.model.Reel;
 import de.raindancer.modules.afkcam.rules.CamRule;
 import de.raindancer.modules.afkcam.rules.CamRule.Moment;
 import de.raindancer.modules.afkcam.rules.CamRule.Verdict;
+import de.raindancer.modules.afkcam.rules.HudRule;
+import de.raindancer.modules.afkcam.rules.HudRule.Footing;
 import de.raindancer.modules.afkcam.util.PermissionNodes;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Fluid;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -34,6 +38,7 @@ import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
@@ -90,6 +95,7 @@ public final class AfkCamService {
         final boolean skySet;
         final String music;
         int ticks;
+        boolean hudHidden;
 
         Session(ItemDisplay display, Mannequin standIn, Reel reel, long startedAt, boolean preview, boolean skySet,
                 String music) {
@@ -123,6 +129,11 @@ public final class AfkCamService {
 
     public boolean running(UUID who) {
         return sessions.containsKey(who);
+    }
+
+    public boolean hidingHud(UUID who) {
+        Session session = sessions.get(who);
+        return session != null && session.hudHidden;
     }
 
     /** Starts watching {@code player}; again after a respawn, when the old task went with the old body. */
@@ -204,6 +215,9 @@ public final class AfkCamService {
             // screen) would otherwise keep looking through nothing.
             camera.look(player, session.display);
         }
+        if (session.ticks >= 3 && (session.ticks == 3 || session.ticks % 10 == 0)) {
+            hud(player, session);
+        }
         if (session.ticks % 20 == 0) {
             showBar(player, session);
         }
@@ -263,6 +277,9 @@ public final class AfkCamService {
             return;
         }
         if (player.isOnline()) {
+            if (session.hudHidden) {
+                camera.showRealMode(player);
+            }
             camera.reset(player);
             bars.clear(player.getUniqueId(), OWNER);
             if (session.skySet) {
@@ -316,6 +333,36 @@ public final class AfkCamService {
         } else {
             session.display.teleportAsync(to);
         }
+    }
+
+    /**
+     * Hides arm and HUD while the footing allows it, and gives them back the moment it does not — a block broken
+     * underfoot, water flowing in — since a client that believes it spectates would float on instead of falling.
+     */
+    private void hud(Player player, Session session) {
+        boolean hide = HudRule.hides(footing(player));
+        if (hide != session.hudHidden) {
+            session.hudHidden = hide && camera.pretendSpectator(player);
+            if (!hide) {
+                camera.showRealMode(player);
+            }
+        }
+    }
+
+    private Footing footing(Player player) {
+        BoundingBox body = player.getBoundingBox();
+        BoundingBox underfoot = new BoundingBox(body.getMinX(), body.getMinY() - 0.1, body.getMinZ(),
+                body.getMaxX(), body.getMinY(), body.getMaxZ());
+        return new Footing(settings.get().hideHud(), camera.hidesHud(), ClickHints.isBedrock(player.getUniqueId()),
+                player.getWorld().hasCollisionsIn(underfoot), player.isInsideVehicle(),
+                inFluid(player), player.isGliding(), player.isFlying());
+    }
+
+    /** Asks the blocks, not the entity: a player sinking through water did not count as in it. */
+    private static boolean inFluid(Player player) {
+        return player.isInWater() || player.isInLava()
+                || player.getWorld().getFluidData(player.getLocation()).getFluidType() != Fluid.EMPTY
+                || player.getWorld().getFluidData(player.getEyeLocation()).getFluidType() != Fluid.EMPTY;
     }
 
     /** How far from the head towards {@code to} is free of solid blocks; infinite when nothing is hit. */

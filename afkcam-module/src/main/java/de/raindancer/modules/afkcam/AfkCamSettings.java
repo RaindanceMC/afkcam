@@ -77,8 +77,16 @@ public record AfkCamSettings(
         @Describe("The sound played to the player when their camera starts, stopped when it ends — a key like "
                 + "minecraft:music.menu. Empty plays nothing.")
         @Key("music")
-        String music) {
+        String music,
+
+        @In("afkcam") @Title("Hide arm and HUD")
+        @Describe("Whether the player's own arm, hotbar and hearts disappear while their camera runs, as on a "
+                + "spectator's screen. Only their client is told it spectates; the server keeps them in their "
+                + "game mode, so farms and pickup run on. Only while they stand on solid ground, never for "
+                + "Bedrock players.")
+        @Key("hide-hud")
+        boolean hideHud) {
 
     public static final AfkCamSettings DEFAULTS = new AfkCamSettings(true, true, 5, 20, 6, 2, 90, 20, true, true,
-            "minecraft:music.menu");
+            "minecraft:music.menu", true);
 }

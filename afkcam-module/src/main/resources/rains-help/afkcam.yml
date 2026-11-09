@@ -33,7 +33,7 @@ sections:
     permission: rainsafkcam.use
     text: |
       {run:/afkcam} switches it on or off for you; {cmd:/afkcam on}, {cmd:/afkcam off} and {cmd:/afkcam status} do what they say. Until you choose it is {if:afkcam:on-by-default}<green>on</green>{else}<yellow>off</yellow>{/if}.
-      {run:/afkcam preview} shows it right now, away or not, until you press a key. Press F1 during it to hide the screen's clutter.
+      {run:/afkcam preview} shows it right now, away or not, until you press a key. Your arm and hotbar step aside while it runs.
   - question: Why does the AFK camera not start?
     title: It does not start
     text: |
