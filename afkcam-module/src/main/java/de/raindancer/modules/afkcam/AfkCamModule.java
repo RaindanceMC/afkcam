@@ -31,7 +31,7 @@ public final class AfkCamModule implements FlexModule {
     private static final String PACK_OWNER = "AfkCam";
     private static final String PACK_NAME = "music";
 
-    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.3.2")
+    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.3.3")
             .describedAs("Calm cinematic camera angles of you while you are away, until you press a key")
             .by("Raindancer118");
 

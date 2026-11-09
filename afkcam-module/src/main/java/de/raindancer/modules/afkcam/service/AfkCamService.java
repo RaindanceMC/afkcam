@@ -278,7 +278,7 @@ public final class AfkCamService {
             d.setVisibleByDefault(false);
             // No interpolation: a new angle is a clean cut, never a swoop.
             d.setTeleportDuration(0);
-            d.setSilent(true);
+            // Not silent: the music is played from it, and a client drops every sound bound to a silent entity.
         });
         player.showEntity(plugin, display);
         Mannequin standIn = head.getWorld().spawn(player.getLocation(), Mannequin.class, m -> {
