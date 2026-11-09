@@ -53,7 +53,7 @@ public final class MusicFolder {
             Files.writeString(pack.resolve("assets").resolve(Track.NAMESPACE).resolve("sounds.json"),
                     sounds.toString());
             Files.writeString(pack.resolve("pack.mcmeta"),
-                    "{\"pack\":{\"pack_format\":1,\"description\":\"AFK camera music\"}}");
+                    "{\"pack\":{\"description\":\"Rain's AFK Cam — music\",\"min_format\":88,\"max_format\":97}}");
         }
         return List.copyOf(tracks);
     }

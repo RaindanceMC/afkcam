@@ -31,7 +31,7 @@ public final class AfkCamModule implements FlexModule {
     private static final String PACK_OWNER = "AfkCam";
     private static final String PACK_NAME = "music";
 
-    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.3.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.3.2")
             .describedAs("Calm cinematic camera angles of you while you are away, until you press a key")
             .by("Raindancer118");
 
@@ -65,13 +65,18 @@ public final class AfkCamModule implements FlexModule {
 
         if (!cams.works()) {
             context.log().warn("AFK cam is up, but this server cannot move a player's camera — nobody's will.");
-        } else if (!Away.isKnown()) {
-            // Not an error: /afkcam preview works, and the camera starts by itself once something says who is away.
-            context.log().info("AFK cam is up, but nothing says who is away (the essentials module) — only /afkcam preview.");
-        } else {
-            context.log().info("AFK cam is up: a camera starts {} s after somebody is away.",
-                    settings.current().startAfterSeconds());
+            return;
         }
+        // Asked once the server is up: essentials may well enable after this module, and Away is asked live anyway.
+        Scheduling.globalLater(context.plugin(), 1, () -> {
+            if (!Away.isKnown()) {
+                context.log().info("AFK cam is up, but nothing says who is away (the essentials module) — only "
+                        + "/afkcam preview.");
+            } else {
+                context.log().info("AFK cam is up: a camera starts {} s after somebody is away.",
+                        settings.current().startAfterSeconds());
+            }
+        });
     }
 
     /** The owner's tracks from {@code plugins/RainsAfkCam/music}, offered to the server's resource pack. */

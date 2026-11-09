@@ -45,7 +45,11 @@ class MusicFolderTest {
                 .getAsJsonObject();
         assertThat(sound.get("name").getAsString()).isEqualTo("rainsafkcam:afk/calm_evening");
         assertThat(sound.get("stream").getAsBoolean()).isTrue();
-        assertThat(pack.resolve("pack.mcmeta")).exists();
+        JsonObject meta = JsonParser.parseString(Files.readString(pack.resolve("pack.mcmeta"))).getAsJsonObject()
+                .getAsJsonObject("pack");
+        assertThat(meta.get("min_format").getAsInt()).as("the formats every other module's pack declares, so a "
+                + "merged pack keeps an overlap and no client calls it outdated").isEqualTo(88);
+        assertThat(meta.get("max_format").getAsInt()).isEqualTo(97);
     }
 
     @Test

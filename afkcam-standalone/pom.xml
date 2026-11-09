@@ -26,7 +26,9 @@
         <!-- 0.1.0: a slow cinematic camera around whoever is away, until they press a key. -->
         <!-- 0.2.0: arm and HUD hidden during the camera (only the client is told it spectates). -->
         <!-- 0.3.0: still angles held 45 s with clean cuts instead of a moving orbit — calm, no shaking. -->
-        <plugin.version>0.3.0</plugin.version>
+        <!-- 0.3.1: the music pack declares the same formats as every other pack; startup line after essentials. -->
+        <!-- 0.3.2: music on the jukebox slider, the game's own background music kept quiet; a log line per camera. -->
+        <plugin.version>0.3.2</plugin.version>
     </properties>
 
     <dependencies>

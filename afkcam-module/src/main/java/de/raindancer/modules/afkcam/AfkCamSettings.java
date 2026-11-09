@@ -85,6 +85,6 @@ public record AfkCamSettings(
         @Key("hide-hud")
         boolean hideHud) {
 
-    public static final AfkCamSettings DEFAULTS = new AfkCamSettings(true, true, 5, 20, 4, 1, 45, true, true,
+    public static final AfkCamSettings DEFAULTS = new AfkCamSettings(true, true, 5, 20, 4, 1, 20, true, true,
             "custom", true);
 }
