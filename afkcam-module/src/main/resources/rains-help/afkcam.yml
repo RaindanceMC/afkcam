@@ -1,0 +1,49 @@
+id: afkcam
+title: AFK camera
+summary: While you are away, a slow cinematic camera circles you — until you press a key.
+intro: |
+  Step away from the keyboard and your screen turns into a little film about yourself: a slow camera gliding round your character, at sunset, with music. Press any key and you are back.
+icon: SPYGLASS
+category: Getting around
+order: 80
+module: afkcam
+aliases: [afkcam, afkcamera, afk-cam, camera, cinematic]
+keywords: [afk, away, camera, cinematic, film, orbit, idle, screen, preview]
+commands: [afkcam]
+sections:
+  - question: What is the AFK camera?
+    title: What it is
+    when: afkcam:enabled
+    text: |
+      Once you count as away, after {setting:afkcam:start-after-seconds|seconds} more your view leaves your head and circles you slowly: close up, wide from high above, low looking up, and from straight overhead, gliding from one shot into the next.
+      {if:afkcam:golden-hour}Your sky turns to sunset while it runs.{/if} Only <i>your</i> screen changes — everybody else sees you standing where you are.
+  - question: How do I get out of it?
+    title: Coming back
+    when: afkcam:enabled
+    text: |
+      Press any movement key, jump, sneak, click or scroll the hotbar — you are back at once. Chatting or typing a command brings you back too.
+  - question: Does it change anything else?
+    title: What it does not change
+    when: afkcam:enabled
+    text: |
+      Nothing. You stay in your game mode and where you are: your farms keep running as they would, you pick up items, and you can still be hurt. Being hurt ends the camera; it comes back once you have not been hurt for {setting:afkcam:calm-seconds|seconds}.
+  - question: How do I switch it off or try it?
+    title: The switch and the preview
+    when: afkcam:enabled
+    permission: rainsafkcam.use
+    text: |
+      {run:/afkcam} switches it on or off for you; {cmd:/afkcam on}, {cmd:/afkcam off} and {cmd:/afkcam status} do what they say. Until you choose it is {if:afkcam:on-by-default}<green>on</green>{else}<yellow>off</yellow>{/if}.
+      {run:/afkcam preview} shows it right now, away or not, until you press a key. Press F1 during it to hide the screen's clutter.
+  - question: Why does the AFK camera not start?
+    title: It does not start
+    text: |
+      {if:!afkcam:enabled}The AFK camera is switched off on this server.{else}Check {run:/afkcam status} first. It also waits while you are being hurt, and spectators keep their own camera. And you have to count as away — standing still for a while, until your name shows [AFK].{/if}
+  - question: What can staff change here?
+    title: Staff settings
+    permission: rainscore.settings
+    text: |
+      {run:/settings} has a page "AFK camera". Defaults today:
+      On — {setting:afkcam:enabled|onoff}; for those who never chose — {setting:afkcam:on-by-default|onoff}.
+      Starts after — {setting:afkcam:start-after-seconds|seconds} away; not within {setting:afkcam:calm-seconds|seconds} of being hurt.
+      Distance {setting:afkcam:radius} blocks, height {setting:afkcam:height}, one turn {setting:afkcam:seconds-per-turn|seconds}, one shot {setting:afkcam:shot-seconds|seconds}.
+      Sunset sky — {setting:afkcam:golden-hour|onoff}; floating sparks — {setting:afkcam:ambience|onoff}; music — {setting:afkcam:music}.

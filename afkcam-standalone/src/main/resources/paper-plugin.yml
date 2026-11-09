@@ -1,0 +1,26 @@
+# Same shape as every other standalone here — see rtp-standalone's copy for why each line matters.
+name: ${plugin.name}
+version: '${plugin.version}'
+main: de.raindancer.modules.wrapper.ModulePlugin
+bootstrapper: de.raindancer.modules.wrapper.ModuleBootstrap
+api-version: '26.3'
+description: 'A slow cinematic camera around you while you are away, until you press a key.'
+author: Raindancer118
+website: https://github.com/RaindanceMC/afkcam
+
+# One task per player on its own entity scheduler; the camera's display is spawned beside that player.
+folia-supported: true
+
+# Who is away comes from Core's Away, answered by the essentials module — not a dependency: without it only
+# /afkcam preview does anything.
+dependencies:
+  bootstrap:
+    RainsCore:
+      load: BEFORE
+      required: true
+      join-classpath: true
+  server:
+    RainsCore:
+      load: BEFORE
+      required: true
+      join-classpath: true
