@@ -1,6 +1,8 @@
 package de.raindancer.modules.afkcam.service;
 
 import com.destroystokyo.paper.ClientOption;
+import de.raindancer.core.content.music.MusicSession;
+import de.raindancer.core.content.music.Track;
 import de.raindancer.core.platform.log.Log;
 import de.raindancer.core.platform.log.LogChannel;
 import de.raindancer.core.platform.util.Scheduling;
@@ -19,8 +21,6 @@ import de.raindancer.modules.afkcam.model.Point;
 import de.raindancer.modules.afkcam.model.Pose;
 import de.raindancer.modules.afkcam.model.Reel;
 import de.raindancer.modules.afkcam.music.MusicChoice;
-import de.raindancer.modules.afkcam.music.Playlist;
-import de.raindancer.modules.afkcam.music.Track;
 import de.raindancer.modules.afkcam.rules.CamRule;
 import de.raindancer.modules.afkcam.rules.CamRule.Moment;
 import de.raindancer.modules.afkcam.rules.CamRule.Verdict;
@@ -28,9 +28,6 @@ import de.raindancer.modules.afkcam.rules.HudRule;
 import de.raindancer.modules.afkcam.rules.HudRule.Footing;
 import de.raindancer.modules.afkcam.util.PermissionNodes;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
-import net.kyori.adventure.key.Key;
-import net.kyori.adventure.sound.Sound;
-import net.kyori.adventure.sound.SoundStop;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Fluid;
 import org.bukkit.FluidCollisionMode;
@@ -50,7 +47,6 @@ import org.bukkit.util.Vector;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -77,13 +73,7 @@ public final class AfkCamService {
     private static final double RECUT_AFTER_BLOCKS = 2;
     /** Heights tried above a blocked shot: 0 to 3 blocks; beyond that it rather comes closer. */
     private static final int LIFTS = 4;
-    /** Quiet between two tracks, the way the game leaves a pause between its own. */
-    private static final double TRACK_GAP_SECONDS = 4;
-    /**
-     * Ours plays on the jukebox slider: the client starts its own background music on the music slider every few
-     * minutes by itself, and only a whole slider can be silenced from here without a list of every vanilla track.
-     */
-    private static final Sound.Source OURS = Sound.Source.RECORD;
+    private static final float VOLUME = 0.8f;
 
     public enum Reason { BACK, KEY, HURT, MOVED, QUIT, OFF }
 
@@ -108,11 +98,10 @@ public final class AfkCamService {
         final long startedAt;
         final boolean preview;
         final boolean skySet;
-        /** The owner's tracks were wanted; null until this player's client has the pack to play them. */
+        /** The owner's tracks were wanted: empty when not, or when there are none. */
         final List<Track> ownTracks;
-        Playlist playlist;
-        String playing = "";
-        long nextTrackAt;
+        MusicSession music;
+        boolean ownPlaying;
         int ticks;
         boolean hudHidden;
         int cut = -1;
@@ -159,7 +148,7 @@ public final class AfkCamService {
     /** The sound a running camera plays to {@code who}, empty when none. */
     public String playing(UUID who) {
         Session session = sessions.get(who);
-        return session == null ? "" : session.playing;
+        return session == null || session.music == null ? "" : session.music.playing();
     }
 
     public boolean hidingHud(UUID who) {
@@ -251,17 +240,13 @@ public final class AfkCamService {
         }
         if (session.ticks % 20 == 0) {
             showBar(player, session);
-            if (session.ticks % 100 == 0 && !session.playing.isEmpty()) {
-                // The game's own background music, which the client starts again on its own now and then.
-                player.stopSound(SoundStop.source(Sound.Source.MUSIC));
-            }
-            if (session.playlist == null && !session.ownTracks.isEmpty() && wearsPack.test(player.getUniqueId())) {
+            if (!session.ownPlaying && !session.ownTracks.isEmpty() && wearsPack.test(player.getUniqueId())) {
                 // Started before the pack had loaded (a camera right after joining): over to the owner's tracks.
-                session.playlist = new Playlist(session.ownTracks, new Random());
-                nextTrack(player, session);
-                log.info("{}'s resource pack is in: the camera now plays {}.", player.getName(), session.playing);
-            } else if (session.playlist != null && clock.getAsLong() >= session.nextTrackAt) {
-                nextTrack(player, session);
+                playMusic(player, session, MusicChoice.PLAYLIST);
+                log.info("{}'s resource pack is in: the camera now plays {}.", player.getName(), playing(id));
+            }
+            if (session.music != null) {
+                session.music.tick();
             }
         }
         if (session.ticks % 8 == 0 && settings.get().ambience()) {
@@ -311,17 +296,10 @@ public final class AfkCamService {
         player.showTitle(Title.title(messages.get("afkcam.title"),
                 messages.get(preview ? "afkcam.subtitle-preview" : "afkcam.subtitle"),
                 Title.Times.times(Duration.ofMillis(1500), Duration.ofSeconds(4), Duration.ofMillis(1500))));
-        // The game's own background music would play over ours.
-        player.stopSound(SoundStop.source(Sound.Source.MUSIC));
-        if (music.playlist()) {
-            session.playlist = new Playlist(own, new Random());
-            nextTrack(player, session);
-        } else if (!music.key().isEmpty()) {
-            play(player, session, music.key());
-        }
+        playMusic(player, session, music);
         showBar(player, session);
         log.info("{}'s camera started, playing {} (resource pack: {}).", player.getName(),
-                session.playing.isEmpty() ? "nothing" : session.playing,
+                playing(player.getUniqueId()).isEmpty() ? "nothing" : playing(player.getUniqueId()),
                 wearsPack.test(player.getUniqueId()) ? "loaded" : "not loaded");
     }
 
@@ -340,8 +318,8 @@ public final class AfkCamService {
             if (session.skySet) {
                 player.resetPlayerTime();
             }
-            if (!session.playing.isEmpty()) {
-                player.stopSound(SoundStop.namedOnSource(Key.key(session.playing), OURS));
+            if (session.music != null) {
+                session.music.stop();
             }
             if (reason == Reason.KEY && Away.isAway(player.getUniqueId())) {
                 watch.hold(player.getUniqueId());
@@ -457,19 +435,16 @@ public final class AfkCamService {
         copy.setItemInOffHand(worn.getItemInOffHand());
     }
 
-    private void nextTrack(Player player, Session session) {
-        if (!session.playing.isEmpty()) {
-            player.stopSound(SoundStop.namedOnSource(Key.key(session.playing), OURS));
-        }
-        Track track = session.playlist.next();
-        play(player, session, track.sound());
-        session.nextTrackAt = clock.getAsLong() + (long) ((track.seconds() + TRACK_GAP_SECONDS) * 1000);
-    }
-
     /** From the camera itself, where the player hears from — from their body it would be a few blocks off. */
-    private static void play(Player player, Session session, String key) {
-        session.playing = key;
-        player.playSound(Sound.sound(Key.key(key), OURS, 0.8f, 1f), session.display);
+    private void playMusic(Player player, Session session, MusicChoice choice) {
+        if (session.music != null) {
+            session.music.stop();
+        }
+        session.ownPlaying = choice.playlist();
+        session.music = choice.playlist() || !choice.key().isEmpty()
+                ? new MusicSession(player, session.display, choice.playlist() ? session.ownTracks : List.of(),
+                        choice.playlist(), choice.key(), VOLUME, clock)
+                : null;
     }
 
     private void showBar(Player player, Session session) {

@@ -1,14 +1,13 @@
 package de.raindancer.modules.afkcam;
 
-import de.raindancer.core.content.pack.PackContribution;
+import de.raindancer.core.content.music.MusicPack;
+import de.raindancer.core.content.music.Track;
 import de.raindancer.core.content.pack.ResourcePacks;
 import de.raindancer.core.data.settings.SettingsStore;
 import de.raindancer.core.platform.util.Scheduling;
 import de.raindancer.core.social.presence.Away;
 import de.raindancer.core.ui.camera.PlayerCamera;
 import de.raindancer.modules.afkcam.listener.AfkCamListener;
-import de.raindancer.modules.afkcam.music.MusicFolder;
-import de.raindancer.modules.afkcam.music.Track;
 import de.raindancer.modules.afkcam.service.AfkCamService;
 import de.raindancer.modules.afkcam.util.PermissionNodes;
 import de.raindancer.modules.api.FlexModule;
@@ -19,7 +18,6 @@ import org.bukkit.Server;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -28,10 +26,7 @@ import java.util.List;
  */
 public final class AfkCamModule implements FlexModule {
 
-    private static final String PACK_OWNER = "AfkCam";
-    private static final String PACK_NAME = "music";
-
-    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.3.3")
+    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.4.0")
             .describedAs("Calm cinematic camera angles of you while you are away, until you press a key")
             .by("Raindancer118");
 
@@ -81,22 +76,15 @@ public final class AfkCamModule implements FlexModule {
 
     /** The owner's tracks from {@code plugins/RainsAfkCam/music}, offered to the server's resource pack. */
     private static List<Track> music(ModuleContext context, ResourcePacks packs) {
-        Path data = context.plugin().getDataFolder().toPath();
-        Path pack = data.resolve("pack").resolve(PACK_NAME);
         try {
-            List<Track> tracks = MusicFolder.build(data.resolve("music"), pack);
-            if (tracks.isEmpty()) {
-                return tracks;
+            MusicPack pack = MusicPack.offer(context.plugin(), packs, "AfkCam", "rainsafkcam",
+                    "Rain's AFK Cam \u2014 music");
+            context.closeWith(pack::withdraw);
+            if (!pack.tracks().isEmpty()) {
+                context.log().info("AFK music: {} track(s) \u2014 {}.", pack.tracks().size(),
+                        String.join(", ", pack.tracks().stream().map(Track::name).toList()));
             }
-            packs.contribute(PackContribution.of(PACK_OWNER, PACK_NAME, pack).describedAs("Music for the AFK camera"));
-            context.closeWith(() -> packs.withdraw(PACK_OWNER.toLowerCase(java.util.Locale.ROOT) + ":" + PACK_NAME));
-            if (packs.current().isPresent()) {
-                Scheduling.async(context.plugin(), () -> packs.rebuild().ifPresent(built -> packs.sendToAll(
-                        context.plugin().getServer().getOnlinePlayers().stream().map(Player::getUniqueId).toList())));
-            }
-            context.log().info("AFK music: {} track(s) — {}.", tracks.size(),
-                    String.join(", ", tracks.stream().map(Track::name).toList()));
-            return tracks;
+            return pack.tracks();
         } catch (IOException failure) {
             context.log().warn("The AFK music could not be read ({}); the camera plays the game's menu music.",
                     failure.getMessage());
