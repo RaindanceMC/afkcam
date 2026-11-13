@@ -5,7 +5,7 @@ afkcam:
   subtitle-preview: "<#6EC1EA>Any key ends it"
   bar: "<#6EC1EA>Away for <white><minutes></white> min <dark_gray>· <gray>any key brings you back"
   # While away, after the first seconds: a tip after this, one of the list below, a new one every 12 seconds.
-  bar-tip: "<#6EC1EA>Away <white><minutes></white> min <dark_gray>· <yellow>💡 "
+  bar-tip: "<#6EC1EA>Away <white><minutes></white> min <dark_gray>· "
   # Empty this list to show no tips. About Hyades first; the last 50 are just for fun.
   tips:
     - "<gray>Use <white>/afkcam off</white> to stop the AFK camera taking over your view."
