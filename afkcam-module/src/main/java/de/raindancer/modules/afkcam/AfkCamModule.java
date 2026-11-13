@@ -26,7 +26,7 @@ import java.util.List;
  */
 public final class AfkCamModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.6.0")
+    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.6.1")
             .describedAs("Calm cinematic camera angles of you while you are away, until you press a key")
             .by("Raindancer118");
 
