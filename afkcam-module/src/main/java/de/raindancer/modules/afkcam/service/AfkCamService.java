@@ -448,10 +448,24 @@ public final class AfkCamService {
     }
 
     private void showBar(Player player, Session session) {
-        long minutes = (clock.getAsLong() - session.startedAt) / 60_000;
-        bars.show(player.getUniqueId(), OWNER, session.preview ? messages.get("afkcam.bar-preview")
-                        : messages.get("afkcam.bar", "minutes", minutes),
-                ActionBars.UNTIL_CLEARED, ActionBarPriority.LOW);
+        long away = clock.getAsLong() - session.startedAt;
+        long minutes = away / 60_000;
+        net.kyori.adventure.text.Component bar;
+        if (session.preview) {
+            bar = messages.get("afkcam.bar-preview");
+        } else {
+            List<net.kyori.adventure.text.Component> tips = tips();
+            int tip = de.raindancer.modules.afkcam.rules.TipRule.tipAt(away, session.startedAt, tips.size());
+            bar = tip < 0 ? messages.get("afkcam.bar", "minutes", minutes)
+                    : messages.get("afkcam.bar-tip", "minutes", minutes).append(tips.get(tip));
+        }
+        bars.show(player.getUniqueId(), OWNER, bar, ActionBars.UNTIL_CLEARED, ActionBarPriority.LOW);
+    }
+
+    /** The tips as written; a blank line, or the list emptied by the owner, is none. */
+    private List<net.kyori.adventure.text.Component> tips() {
+        return messages.lines("afkcam.tips").stream().filter(line -> !net.kyori.adventure.text.serializer.plain
+                .PlainTextComponentSerializer.plainText().serialize(line).isBlank()).toList();
     }
 
     private static void sparkle(Player player) {

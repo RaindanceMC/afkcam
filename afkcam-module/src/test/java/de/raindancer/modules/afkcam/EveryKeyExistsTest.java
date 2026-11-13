@@ -40,6 +40,6 @@ class EveryKeyExistsTest {
         }
 
         assertThat(used).as("the scan found no keys, so it checks nothing").hasSizeGreaterThan(5);
-        assertThat(used).allSatisfy(name -> assertThat(yaml.isString(name)).as(name).isTrue());
+        assertThat(used).allSatisfy(name -> assertThat(yaml.isString(name) || yaml.isList(name)).as(name).isTrue());
     }
 }
