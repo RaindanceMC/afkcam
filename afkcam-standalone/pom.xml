@@ -29,7 +29,7 @@
         <!-- 0.3.1: the music pack declares the same formats as every other pack; startup line after essentials. -->
         <!-- 0.3.2: music on the jukebox slider, the game's own background music kept quiet; a log line per camera. -->
         <!-- 0.3.3: the camera entity is not silent, so the client plays the music bound to it. -->
-        <plugin.version>0.5.1</plugin.version>
+        <plugin.version>0.6.0</plugin.version>
     </properties>
 
     <dependencies>

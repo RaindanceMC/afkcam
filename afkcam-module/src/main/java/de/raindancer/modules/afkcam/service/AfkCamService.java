@@ -457,9 +457,21 @@ public final class AfkCamService {
             List<net.kyori.adventure.text.Component> tips = tips();
             int tip = de.raindancer.modules.afkcam.rules.TipRule.tipAt(away, session.startedAt, tips.size());
             bar = tip < 0 ? messages.get("afkcam.bar", "minutes", minutes)
-                    : messages.get("afkcam.bar-tip", "minutes", minutes).append(tips.get(tip));
+                    : twoLines(messages.get("afkcam.bar-upper", "minutes", minutes), tips.get(tip),
+                            messages.get("afkcam.bar-tip", "minutes", minutes));
         }
         bars.show(player.getUniqueId(), OWNER, bar, ActionBars.UNTIL_CLEARED, ActionBarPriority.LOW);
+    }
+
+    /** The minutes over the tip, as two lines (Core 2.97.0); one line on an older Core. */
+    private static net.kyori.adventure.text.Component twoLines(net.kyori.adventure.text.Component upper,
+                                                               net.kyori.adventure.text.Component tip,
+                                                               net.kyori.adventure.text.Component oneLine) {
+        try {
+            return de.raindancer.core.ui.actionbar.TwoLines.of(upper, tip);
+        } catch (LinkageError olderCore) {
+            return oneLine.append(tip);
+        }
     }
 
     /** The tips as written; a blank line, or the list emptied by the owner, is none. */

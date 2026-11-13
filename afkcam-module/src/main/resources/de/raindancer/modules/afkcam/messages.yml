@@ -4,7 +4,9 @@ afkcam:
   subtitle: "<#6EC1EA>Any key brings you back"
   subtitle-preview: "<#6EC1EA>Any key ends it"
   bar: "<#6EC1EA>Away for <white><minutes></white> min <dark_gray>· <gray>any key brings you back"
-  # While away, after the first seconds: a tip after this, one of the list below, a new one every 12 seconds.
+  # While away, after the first seconds: this line, and under it a tip from the list below, a new one every 12 seconds.
+  bar-upper: "<#6EC1EA>Away <white><minutes></white> min"
+  # The same on one line, on a server whose RainsCore is older than 2.97.0: the tip follows it.
   bar-tip: "<#6EC1EA>Away <white><minutes></white> min <dark_gray>· "
   # Empty this list to show no tips. About Hyades first; the last 50 are just for fun.
   tips:
