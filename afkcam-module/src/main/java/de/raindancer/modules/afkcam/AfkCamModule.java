@@ -43,7 +43,6 @@ public final class AfkCamModule implements FlexModule {
         SettingsStore<AfkCamSettings> settings = context.settings(AfkCamSettings.class, AfkCamSettings.DEFAULTS);
         context.core().messages().defineFrom(AfkCamModule.class.getResourceAsStream("messages.yml"),
                 context.chat().brand()::chatPrefix);
-        context.core().messages().seriousFrom(AfkCamModule.class.getResourceAsStream("messages-serious.yml"));
         PermissionNodes.register(context.plugin().getServer());
 
         server = context.plugin().getServer();
