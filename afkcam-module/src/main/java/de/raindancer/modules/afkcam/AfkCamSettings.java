@@ -69,7 +69,7 @@ public record AfkCamSettings(
         boolean ambience,
 
         @In("afkcam") @Title("Music")
-        @Describe("What plays while the camera runs. custom: the server's own tracks — every .ogg (Vorbis) in "
+        @Describe("What plays while the camera runs. custom: the server's own tracks, every .ogg (Vorbis) in "
                 + "plugins/RainsAfkCam/music, shuffled, one after another; they reach players through the server's "
                 + "resource pack, and whoever has no pack (or while the folder is empty) hears the game's menu "
                 + "music instead. Or a sound key like minecraft:music.menu, played once. Empty plays nothing. "

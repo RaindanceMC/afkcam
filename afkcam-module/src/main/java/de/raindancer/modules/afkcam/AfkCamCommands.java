@@ -20,7 +20,7 @@ public final class AfkCamCommands {
         return List.of(ModuleCommand.of("afkcam", "Switches your AFK camera, or shows it now",
                         new AfkCamCommand(AfkCamCommands::require))
                 .aliased("afkcamera")
-                .taking("(nothing) — switch it", "on | off | status", "preview — see it right now")
+                .taking("(nothing): switch it", "on | off | status", "preview: see it right now")
                 .needing("rainsafkcam.use"));
     }
 
