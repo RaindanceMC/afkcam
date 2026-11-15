@@ -1,8 +1,8 @@
 id: afkcam
 title: AFK camera
-summary: While you are away, calm cinematic camera angles show you — until you press a key.
+summary: While you are away, a calm camera shows you from still angles until you press a key.
 intro: |
-  Step away from the keyboard and your screen turns into a little film about yourself: calm still shots of your character, at sunset, with music. Press any key and you are back.
+  When you step away from the keyboard, your screen shows calm still shots of your character, with music. Press any key and you are back.
 icon: SPYGLASS
 category: Getting around
 order: 80
@@ -16,12 +16,12 @@ sections:
     when: afkcam:enabled
     text: |
       Once you count as away, after {setting:afkcam:start-after-seconds|seconds} more your view leaves your head and shows you from still angles, each held a while before a quiet cut to another side: close up, wide from high above, low looking up, and from straight overhead.
-      {if:afkcam:golden-hour}Your sky turns to sunset while it runs.{/if} Only <i>your</i> screen changes — everybody else sees you standing where you are.
+      {if:afkcam:golden-hour}Your sky turns to sunset while it runs.{/if} Only <i>your</i> screen changes. Everybody else sees you standing where you are.
   - question: How do I get out of it?
     title: Coming back
     when: afkcam:enabled
     text: |
-      Press any movement key, jump, sneak, click or scroll the hotbar — you are back at once. Chatting or typing a command brings you back too.
+      Press any movement key, jump, sneak, click or scroll the hotbar and you are back at once. Chatting or typing a command brings you back too.
   - question: Does it change anything else?
     title: What it does not change
     when: afkcam:enabled
@@ -37,13 +37,13 @@ sections:
   - question: Why does the AFK camera not start?
     title: It does not start
     text: |
-      {if:!afkcam:enabled}The AFK camera is switched off on this server.{else}Check {run:/afkcam status} first. It also waits while you are being hurt, and spectators keep their own camera. And you have to count as away — standing still for a while, until your name shows [AFK].{/if}
+      {if:!afkcam:enabled}The AFK camera is switched off on this server.{else}Check {run:/afkcam status} first. It also waits while you are being hurt, and spectators keep their own camera. You also have to count as away: standing still for a while, until your name shows [AFK].{/if}
   - question: What can staff change here?
     title: Staff settings
     permission: rainscore.settings
     text: |
       {run:/settings} has a page "AFK camera". Defaults today:
-      On — {setting:afkcam:enabled|onoff}; for those who never chose — {setting:afkcam:on-by-default|onoff}.
-      Starts after — {setting:afkcam:start-after-seconds|seconds} away; not within {setting:afkcam:calm-seconds|seconds} of being hurt.
+      On: {setting:afkcam:enabled|onoff}. For those who never chose: {setting:afkcam:on-by-default|onoff}.
+      Starts after {setting:afkcam:start-after-seconds|seconds} away, and not within {setting:afkcam:calm-seconds|seconds} of being hurt.
       Distance {setting:afkcam:radius} blocks, height {setting:afkcam:height}, each angle held {setting:afkcam:shot-seconds|seconds}.
-      Sunset sky — {setting:afkcam:golden-hour|onoff}; floating sparks — {setting:afkcam:ambience|onoff}; music — {setting:afkcam:music} (custom: the server's own tracks).
+      Sunset sky: {setting:afkcam:golden-hour|onoff}. Floating sparks: {setting:afkcam:ambience|onoff}. Music: {setting:afkcam:music} (custom means the server's own tracks).
