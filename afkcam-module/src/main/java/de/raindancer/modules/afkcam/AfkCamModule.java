@@ -26,7 +26,7 @@ import java.util.List;
  */
 public final class AfkCamModule implements FlexModule {
 
-    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.6.2")
+    private static final ModuleInfo INFO = ModuleInfo.of("afkcam", "AFK Cam", "0.7.0")
             .describedAs("Calm cinematic camera angles of you while you are away, until you press a key")
             .by("Raindancer118");
 
@@ -55,7 +55,16 @@ public final class AfkCamModule implements FlexModule {
         for (Player online : server.getOnlinePlayers()) {
             cams.track(online);
         }
-        AfkCamCommands.ready(new AfkCamServices(context.core().messages(), cams));
+        AfkCamServices services = new AfkCamServices(context.core().messages(), cams);
+        AfkCamCommands.ready(services);
+        // The switch is on /preferences (Core 2.103.0); /afkcam stays as the shortcut.
+        try {
+            de.raindancer.core.ui.preference.Preference camera = AfkCamPreferences.camera(() -> services, settings::current);
+            de.raindancer.core.ui.preference.Preferences.offer(context.plugin(), camera);
+            context.closeWith(() -> de.raindancer.core.ui.preference.Preferences.withdraw(camera));
+        } catch (LinkageError olderCore) {
+            context.log().info("RainsCore is older than 2.103.0: the AFK camera is not on /preferences.");
+        }
 
         if (!cams.works()) {
             context.log().warn("AFK cam is up, but this server cannot move a player's camera, so nobody's will.");
